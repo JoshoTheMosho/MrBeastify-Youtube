@@ -53,9 +53,6 @@ function applyOverlay(thumbnailElement, overlayImageURL, flip = false) {
 // Determine which image set to use based on the percentage split
 function getRandomImageSource() {
     const randomizer = Math.random() * 100;
-    console.log(imageSplit)
-    console.log(highestCustomImageIndex)
-    console.log(lastCustomImages)
     if (randomizer < imageSplit && highestCustomImageIndex > 0) {
         return { path: customImagesPath, maxIndex: highestCustomImageIndex, lastImages: lastCustomImages };
     } else {
@@ -63,17 +60,28 @@ function getRandomImageSource() {
     }
 }
 
-// Get a random image URL from the chosen directory
 function getRandomImageFromDirectory() {
     const { path, lastImages } = getRandomImageSource();
     let randomImageSrc = '';
 
     if (path === customImagesPath && customImages.length > 0) {
-        let randomIndex = -1;
+        let possibleIndices = [];
 
-        while (lastImages.includes(randomIndex) || randomIndex < 0) {
-            randomIndex = Math.floor(Math.random() * customImages.length);
+        // Generate a list of indices not in lastImages
+        for (let i = 0; i < customImages.length; i++) {
+            if (!lastImages.includes(i)) {
+                possibleIndices.push(i);
+            }
         }
+
+        // If all indices are in lastImages, reset lastImages and use all indices
+        if (possibleIndices.length === 0) {
+            lastImages.length = 0; // Clear the array
+            possibleIndices = [...Array(customImages.length).keys()]; // All possible indices
+        }
+
+        // Select a random index from possibleIndices
+        const randomIndex = possibleIndices[Math.floor(Math.random() * possibleIndices.length)];
 
         lastImages.push(randomIndex);
         if (lastImages.length > sizeOfNonRepeat) {
@@ -83,11 +91,20 @@ function getRandomImageFromDirectory() {
         randomImageSrc = customImages[randomIndex];
     } else {
         // Existing logic for built-in images
-        let randomIndex = -1;
+        let possibleIndices = [];
 
-        while (lastImages.includes(randomIndex) || randomIndex < 0) {
-            randomIndex = Math.floor(Math.random() * highestImageIndex) + 1;
+        for (let i = 1; i <= highestImageIndex; i++) {
+            if (!lastImages.includes(i)) {
+                possibleIndices.push(i);
+            }
         }
+
+        if (possibleIndices.length === 0) {
+            lastImages.length = 0; // Reset lastImages
+            possibleIndices = [...Array(highestImageIndex).keys()].map(i => i + 1); // Indices from 1 to highestImageIndex
+        }
+
+        const randomIndex = possibleIndices[Math.floor(Math.random() * possibleIndices.length)];
 
         lastImages.push(randomIndex);
         if (lastImages.length > sizeOfNonRepeat) {
@@ -192,7 +209,6 @@ function getImageURL(path, index) {
 
 // Checks if an image exists in the image folder
 async function checkImageExistence(path, index) {
-    console.log("Checking image existence for", path, index)
     const testedURL = getImageURL(path, index)
 
     return fetch(testedURL)
@@ -287,18 +303,16 @@ async function Main() {
         return;
     }
 
-    console.log("Getting flip blocklist");
     GetFlipBlocklist();
 
-    console.log("Getting highest image index");
     highestImageIndex = await getHighestImageIndex(imagesPath);
 
-    console.log("Loading custom images from storage");
     await loadCustomImages(); // Load custom images here
 
-    console.log(`${extensionName} Loaded. ${highestImageIndex} MrBeast images found. ${customImages.length} custom images found. ${blacklistStatus}.`);
+    highestCustomImageIndex = customImages.length;
 
-    console.log("Applying overlay to thumbnails");
+    console.log(`${extensionName} Loaded. ${highestImageIndex} MrBeast images found. ${highestCustomImageIndex} custom images found. ${blacklistStatus}.`);
+
     setInterval(() => applyOverlayToThumbnails(), 100);
 }
 
