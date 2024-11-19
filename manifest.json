@@ -1,25 +1,46 @@
 {
-    "manifest_version": 2,
-    "name": "YouTube MrBeastify",
+    "manifest_version": 3,
+    "name": "Custom YouTube MrBeastify",
     "version": "1.7.2",
     "icons": {
         "96": "icon.png"
     },
     "description": "Modify YouTube thumbnails to include MrBeast",
-    "browser_action": {
+    "action": {
         "default_popup": "settings.html"
     },
     "permissions": [
-        "storage",
+        "storage"
+    ],
+    "host_permissions": [
         "*://*.youtube.com/*"
     ],
-    "content_scripts": [{
-        "matches": ["*://*.youtube.com/*"],
-        "js": ["mrbeastify.js"],
-        "run_at": "document_idle"
-    }],
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.youtube.com/*"
+            ],
+            "js": [
+                "mrbeastify.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
     "web_accessible_resources": [
-        "images/*.png",
-        "images/*.json"
+        {
+            "resources": [
+                "images/*.png",
+                "images/*.json",
+                "images/*.jpg",
+                "images/*.jpeg",
+                "images/custom/*.png",
+                "images/custom/*.json",
+                "images/custom/*.jpg",
+                "images/custom/*.jpeg"
+            ],
+            "matches": [
+                "*://*/*"
+            ]
+        }
     ]
 }

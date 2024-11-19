@@ -56,6 +56,41 @@
             border-width: 0 2px 2px 0;
             transform: rotate(45deg);
         }
+
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0, 0, 0); /* Fallback color */
+            background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -85,6 +120,34 @@
             Flip Chance (%):
             <input type="number" id="flipChance" min="0" max="100" step="5" />
         </label>
+
+        <br><br>
+
+        <!-- Custom Image Split-->
+        <label for="imageSplit">Image Split (MrBeast vs Custom):
+            <input type="range" id="imageSplit" min="0" max="100" step="1" value="50">
+            <span id="splitPercentage">50%</span>
+        </label>
+
+        <br><br>
+
+        <!-- Upload Images -->
+        <label for="customImages">
+            Upload Custom Images:
+            <input type="file" id="customImages" multiple>
+        </label>
+
+        <br><br>
+
+        <!-- Open uploaded images -->
+        <button id="openModalButton">View Uploaded Images</button>
+
+        <!-- Modal for displaying uploaded images -->
+        <div id="imageModal" style="display:none;">
+            <h2>Uploaded Images</h2>
+            <ul id="uploadedImagesListModal"></ul>
+            <button id="closeModalButton">Close</button>
+        </div>
 
         <a href="https://ko-fi.com/magicjinn" target="_blank" class="kofi-icon">
             <img src="https://ko-fi.com/favicon.ico" width="24" height="24">
