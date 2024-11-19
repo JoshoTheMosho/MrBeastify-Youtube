@@ -36,7 +36,11 @@
                 "images/custom/*.png",
                 "images/custom/*.json",
                 "images/custom/*.jpg",
-                "images/custom/*.jpeg"
+                "images/custom/*.jpeg",
+                "images/textFlipped/*.png",
+                "images/textFlipped/*.json",
+                "images/textFlipped/*.jpg",
+                "images/textFlipped/*.jpeg"
             ],
             "matches": [
                 "*://*/*"

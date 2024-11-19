@@ -1,4 +1,5 @@
 const imagesPath = "images/";
+const customImagesPath = "images/custom/";
 var useAlternativeImages
 var flipBlacklist // Stores flipBlackList.js
 var blacklistStatus
@@ -8,6 +9,32 @@ var extensionName = chrome.runtime.getManifest().name;
 var extensionIsDisabled = false
 var appearChance = 1.00//%
 var flipChance = 0.25//%
+var imageSplit = 50;     // Percentage split between MrBeast and Custom images
+
+// Image counters
+var highestImageIndex;
+var highestCustomImageIndex;
+
+// Separate arrays to track last selected images
+const lastMrBeastImages = [];
+const lastCustomImages = [];
+const sizeOfNonRepeat = 10; // Track last N images for no-repeat
+
+let customImages = [];
+
+async function loadCustomImages() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(null, (items) => {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                const customImagesKeys = Object.keys(items).filter(key => key.startsWith('/images/custom/'));
+                customImages = customImagesKeys.map(key => items[key]);
+                resolve();
+            }
+        });
+    });
+}
 
 // Apply the overlay
 function applyOverlay(thumbnailElement, overlayImageURL, flip = false) {
@@ -20,8 +47,58 @@ function applyOverlay(thumbnailElement, overlayImageURL, flip = false) {
     overlayImage.style.width = "100%";
     overlayImage.style.transform = `translate(-50%, -50%) ${flip ? 'scaleX(-1)' : ''}`; // Center and flip the image
     overlayImage.style.zIndex = "0"; // Ensure overlay is on top but below the time indicator
-    thumbnailElement.parentElement.insertBefore(overlayImage, thumbnailElement.nextSibling /*Makes sure the image doesn't cover any info, but still overlays the original thumbnail*/ );
+    thumbnailElement.parentElement.insertBefore(overlayImage, thumbnailElement.nextSibling /*Makes sure the image doesn't cover any info, but still overlays the original thumbnail*/);
 };
+
+// Determine which image set to use based on the percentage split
+function getRandomImageSource() {
+    const randomizer = Math.random() * 100;
+    console.log(imageSplit)
+    console.log(highestCustomImageIndex)
+    console.log(lastCustomImages)
+    if (randomizer < imageSplit && highestCustomImageIndex > 0) {
+        return { path: customImagesPath, maxIndex: highestCustomImageIndex, lastImages: lastCustomImages };
+    } else {
+        return { path: imagesPath, maxIndex: highestImageIndex, lastImages: lastMrBeastImages };
+    }
+}
+
+// Get a random image URL from the chosen directory
+function getRandomImageFromDirectory() {
+    const { path, lastImages } = getRandomImageSource();
+    let randomImageSrc = '';
+
+    if (path === customImagesPath && customImages.length > 0) {
+        let randomIndex = -1;
+
+        while (lastImages.includes(randomIndex) || randomIndex < 0) {
+            randomIndex = Math.floor(Math.random() * customImages.length);
+        }
+
+        lastImages.push(randomIndex);
+        if (lastImages.length > sizeOfNonRepeat) {
+            lastImages.shift();
+        }
+
+        randomImageSrc = customImages[randomIndex];
+    } else {
+        // Existing logic for built-in images
+        let randomIndex = -1;
+
+        while (lastImages.includes(randomIndex) || randomIndex < 0) {
+            randomIndex = Math.floor(Math.random() * highestImageIndex) + 1;
+        }
+
+        lastImages.push(randomIndex);
+        if (lastImages.length > sizeOfNonRepeat) {
+            lastImages.shift();
+        }
+
+        randomImageSrc = chrome.runtime.getURL(`${path}${randomIndex}.png`);
+    }
+
+    return randomImageSrc;
+}
 
 function FindThumbnails() {
     var thumbnailImages = document.querySelectorAll("ytd-thumbnail a > yt-image > img.yt-core-image");
@@ -99,7 +176,7 @@ function applyOverlayToThumbnails() {
             }
 
             const overlayImageURL = Math.random() < appearChance ?
-                getImageURL(baseImagePath) :
+                baseImagePath :
                 ""; // Just set the url to "" if we don't want MrBeast to appear lol
 
             applyOverlay(thumbnailElement, overlayImageURL, flip);
@@ -109,13 +186,14 @@ function applyOverlayToThumbnails() {
 }
 
 // Get the URL of an image
-function getImageURL(index) {
-    return chrome.runtime.getURL(`${imagesPath}${index}.png`);
+function getImageURL(path, index) {
+    return chrome.runtime.getURL(`${path}${index}.png`);
 }
 
 // Checks if an image exists in the image folder
-async function checkImageExistence(index) {
-    const testedURL = getImageURL(index)
+async function checkImageExistence(path, index) {
+    console.log("Checking image existence for", path, index)
+    const testedURL = getImageURL(path, index)
 
     return fetch(testedURL)
         .then(() => {
@@ -134,55 +212,28 @@ const size_of_non_repeat = 8
 // List of the index of the last N selected images.
 const last_indexes = Array(size_of_non_repeat)
 
-// Get a random image URL from a directory
-function getRandomImageFromDirectory() {
-    let randomIndex = -1
-
-    // It selects a random index until it finds one that is not repeated
-    while (last_indexes.includes(randomIndex) || randomIndex < 0) {
-        randomIndex = Math.floor(Math.random() * highestImageIndex) + 1;
-    }
-
-    // When it finds the non repeating index, it eliminates the oldest value, and pushes the current index
-    last_indexes.shift()
-    last_indexes.push(randomIndex)
-
-    return randomIndex
-}
-
 var highestImageIndex;
-// Gets the highest index of an image in the image folder starting from 1
-async function getHighestImageIndex() {
-    // Avoid exponential search for smaller values
+// Fetch the highest index of images in a folder
+async function getHighestImageIndex(path) {
     let i = 4;
-
-    // Increase i until i is greater than the number of images
-    while (await checkImageExistence(i)) {
+    while (await checkImageExistence(path, i)) {
         i *= 2;
     }
-
-    // Possible min and max values
     let min = i <= 4 ? 1 : i / 2;
     let max = i;
 
-    // Binary search
     while (min <= max) {
-        // Find the midpoint of possible max and min
         let mid = Math.floor((min + max) / 2);
-
-        // Check if the midpoint exists
-        if (await checkImageExistence(mid)) {
-            // If it does, next min to check is one greater
+        if (await checkImageExistence(path, mid)) {
             min = mid + 1;
         } else {
-            // If it doesn't, max must be at least one less
             max = mid - 1;
         }
     }
 
-    // Max is the size of the image array
-    highestImageIndex = max;
+    return max;
 }
+
 ////////////////////////
 //  BrandonXLF Magic  //
 ////////////////////////
@@ -202,61 +253,53 @@ function GetFlipBlocklist() {
 }
 
 async function LoadConfig() {
-    const df /* default */ = {
+    const df = {
         extensionIsDisabled: extensionIsDisabled,
         appearChance: appearChance,
-        flipChance: flipChance
-    }
+        flipChance: flipChance,
+        imageSplit: imageSplit
+    };
 
     try {
         const config = await new Promise((resolve, reject) => {
-            chrome.storage.local.get({
-                extensionIsDisabled,
-                appearChance,
-                flipChance
-            }, (result) => {
-                chrome.runtime.lastError ? // Check for errors
-                    reject(chrome.runtime.lastError) : // Reject if errors
-                    resolve(result) // Resolve if no errors
+            chrome.storage.local.get(df, (result) => {
+                chrome.runtime.lastError ?
+                    reject(chrome.runtime.lastError) :
+                    resolve(result);
             });
         });
 
         // Initialize variables based on loaded configuration
-        extensionIsDisabled = config.extensionIsDisabled || df.extensionIsDisabled;
-        appearChance = config.appearChance || df.appearChance;
-        flipChance = config.flipChance || df.flipChance;
-
-        if (Object.keys(config).length === 0 && config.constructor === Object /* config doesn't exist */) {
-            await new Promise((resolve, reject) => {
-                chrome.storage.local.set(df, () => {
-                    chrome.runtime.lastError ? // Check for errors
-                        reject(chrome.runtime.lastError) : // Reject if errors
-                        resolve() // Resolve if no errors
-                })
-            }
-            )
-        }
-    } catch (error) { console.error("Guhh?? Error loading configuration:", error); }
+        extensionIsDisabled = config.extensionIsDisabled;
+        appearChance = config.appearChance;
+        flipChance = config.flipChance;
+        imageSplit = config.imageSplit;
+    } catch (error) {
+        console.error("Error loading configuration:", error);
+    }
 }
 
 async function Main() {
-    await LoadConfig()
+    await LoadConfig();
 
     if (extensionIsDisabled) {
-        console.log(`${extensionName} is disabled.`)
-        return // Exit the function if MrBeastify is disabled
+        console.log(`${extensionName} is disabled.`);
+        return;
     }
 
-    GetFlipBlocklist()
-    console.log(`${extensionName} will now detect the amount of images. Ignore all the following errors.`)
-    getHighestImageIndex()
-        .then(() => {
-            setInterval(applyOverlayToThumbnails, 100);
-            console.log(
-                `${extensionName} Loaded Successfully. ${highestImageIndex} images detected. ${blacklistStatus}.`
-            );
+    console.log("Getting flip blocklist");
+    GetFlipBlocklist();
 
-        })
+    console.log("Getting highest image index");
+    highestImageIndex = await getHighestImageIndex(imagesPath);
+
+    console.log("Loading custom images from storage");
+    await loadCustomImages(); // Load custom images here
+
+    console.log(`${extensionName} Loaded. ${highestImageIndex} MrBeast images found. ${customImages.length} custom images found. ${blacklistStatus}.`);
+
+    console.log("Applying overlay to thumbnails");
+    setInterval(() => applyOverlayToThumbnails(), 100);
 }
 
 Main()

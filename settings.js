@@ -112,56 +112,56 @@ async function getCurrentCustomImageIndex() {
     });
 }
 
-// Handle file uploads and deletions
-document.getElementById('customImages').addEventListener('change', async function (event) {
-    const files = event.target.files;
-    const uploadStatus = document.getElementById('uploadStatus');
-    // uploadStatus.textContent = ''; // Clear any previous messages
+// // Handle file uploads and deletions
+// document.getElementById('customImages').addEventListener('change', async function (event) {
+//     const files = event.target.files;
+//     const uploadStatus = document.getElementById('uploadStatus');
+//     // uploadStatus.textContent = ''; // Clear any previous messages
 
-    for (const file of files) {
-        const reader = new FileReader();
-        reader.onload = async function (e) {
-            const fileContent = e.target.result;
-            const currentIndex = await getCurrentCustomImageIndex();
+//     for (const file of files) {
+//         const reader = new FileReader();
+//         reader.onload = async function (e) {
+//             const fileContent = e.target.result;
+//             const currentIndex = await getCurrentCustomImageIndex();
 
-            // Automatically name the file as `index.png` based on the current number of images
-            const fileName = `/images/custom/${currentIndex}.png`;
+//             // Automatically name the file as `index.png` based on the current number of images
+//             const fileName = `/images/custom/${currentIndex}.png`;
 
-            // Save image content to Chrome storage
-            chrome.storage.local.set({ [fileName]: fileContent }, function () {
-                console.log(`${fileName} saved successfully`);
+//             // Save image content to Chrome storage
+//             chrome.storage.local.set({ [fileName]: fileContent }, function () {
+//                 console.log(`${fileName} saved successfully`);
 
-                // Display the uploaded image in the modal list
-                const uploadedImagesListModal = document.getElementById('uploadedImagesListModal');
-                const listItem = document.createElement('li');
-                listItem.textContent = fileName; // Display the file name
+//                 // Display the uploaded image in the modal list
+//                 const uploadedImagesListModal = document.getElementById('uploadedImagesListModal');
+//                 const listItem = document.createElement('li');
+//                 listItem.textContent = fileName; // Display the file name
 
-                const img = document.createElement('img');
-                img.src = fileContent; // Use the file content as the image source
-                img.width = 50; // Set a width for display
-                img.alt = file.name;
+//                 const img = document.createElement('img');
+//                 img.src = fileContent; // Use the file content as the image source
+//                 img.width = 50; // Set a width for display
+//                 img.alt = file.name;
 
-                // Create delete button
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Delete';
-                deleteButton.onclick = function () {
-                    // Remove image from storage
-                    chrome.storage.local.remove(fileName, function () {
-                        console.log(`${fileName} deleted successfully`);
+//                 // Create delete button
+//                 const deleteButton = document.createElement('button');
+//                 deleteButton.textContent = 'Delete';
+//                 deleteButton.onclick = function () {
+//                     // Remove image from storage
+//                     chrome.storage.local.remove(fileName, function () {
+//                         console.log(`${fileName} deleted successfully`);
 
-                        // Remove list item from modal
-                        uploadedImagesListModal.removeChild(listItem);
-                    });
-                };
+//                         // Remove list item from modal
+//                         uploadedImagesListModal.removeChild(listItem);
+//                     });
+//                 };
 
-                listItem.appendChild(img);
-                listItem.appendChild(deleteButton); // Add delete button to the list item
-                uploadedImagesListModal.appendChild(listItem);
-            });
-        };
-        reader.readAsDataURL(file); // Convert image to base64 format for storage
-    }
-});
+//                 listItem.appendChild(img);
+//                 listItem.appendChild(deleteButton); // Add delete button to the list item
+//                 uploadedImagesListModal.appendChild(listItem);
+//             });
+//         };
+//         reader.readAsDataURL(file); // Convert image to base64 format for storage
+//     }
+// });
 
 // Event listener for opening the modal
 document.getElementById('customImages').addEventListener('change', async function (event) {
